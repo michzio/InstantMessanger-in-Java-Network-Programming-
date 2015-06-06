@@ -1,0 +1,206 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1265\cocoasubrtf190
+{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;}
+{\colortbl;\red255\green255\blue255;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural
+
+\f0\fs22 \cf0 \CocoaLigature0 0. KOMPILACJA \
+\
+$ javac messanger/Server.java \
+$ javac messanger/Contact.java\
+\
+   URUCHOMIENIE\
+$ java messanger.Server\
+$ java messanger.Client & \
+\
+UWAGA! has\uc0\u322 o musi zawiera\u263 : \
+       - znaki specjalne\
+       - cyfre\
+       - litere ma\uc0\u322 a\
+       - litere du\uc0\u380 \u261  \
+       testowane wyra\uc0\u380 eniem regularnym \
+\
+1. BAZA DANYCH - SQLite \
+\
+Program (Server) u\uc0\u380 ywa bazy danych SQL.\
+\
+Aby uzyska\uc0\u263  dost\u281 p do bazy danych SQLite z programu napisanego w JAVA nale\u380 y \
+w Unix/Mac shell wykona\uc0\u263  nast\u281 puj\u261 c\u261  komend\u281 : \
+1.) u\uc0\u380 ywaj\u261 c BASHa\
+$ export CLASSPATH=$CLASSPATH:/java/classes:/Users/michzio/Developer/ProgramowanieSieciowe/cw6/sqlite-jdbc-3.7.2.jar\
+\
+\uc0\u379 eby zobaczy\u263  zmienne \u347 rodowiskowe CLASSPATH mo\u380 na wykona\u263 \
+@ echo $CLASSPATH\
+\
+\
+Folder (pakiet) ./model zawiera pliki klas ORM (Mapowanie obiektowo relacyjne) \
+Message, Contact, ContactList oraz plik DataBase. \
+\
+Message reprezentuje w formie obiektowej tablic\uc0\u281  message bazy danych SQL \
+- metody do zapisywania wiadomo\uc0\u347 ci do bazy danych \
+- aktualizowanie wiadomo\uc0\u347 ci w bazie danych\
+- usuwanie wiadomo\uc0\u347 ci z bazy danych \
+- pobieranie wiadomo\uc0\u347 ci po message_id \
+- usuwanie wiadomo\uc0\u347 ci dla konkretnego odbiorcy wiadomo\u347 ci \
+- pobieranie wiadomo\uc0\u347 ci nieprzeczytanych (timestamp read_date == NULL) dla konkretnego u\u380 ytkownika\
+- usuwanie wiadomo\uc0\u347 ci dla konkretnego nadawcy \
+- wybieranie zarchiwizowanych wiadomo\uc0\u347 ci w komunikacji pomi\u281 dzy dwoma konkretnymi u\u380 ytkownikami \
+\
+Tablica w bazie danych SQL: \
+message \
+\
+*********************************************************\
+* message_id INTEGER PRIMARY KEY AUTOINCREMENT          *\
+* receiver_id INTEGER 							     *\
+* sender_id INTEGER							          *\
+* message TEXT   								      *\
+* created_date TEXT \'93YYYY-MM-dd HH:MM:ss.SSS\'94            *\
+* read_date TEXT \'93YYYY-MM-dd HH:MM:ss.SSS\'94               *\
+**********************************************************\
+\
+Contact - to obiekt reprezentuj\uc0\u261 cy wpis do tablicy contact w bazie danych\
+\
+**********************************************************\
+* contact_id INTEGER PRIMARY_KEY AUTOINCREMENT           *\
+* nickname VARCHAR(255) 							      *\
+* sha1password CHARACTER(40)                             *\
+* first_name VARCHAR(255) 						      *\
+* last_name VARCHAR(255) 							      *\
+**********************************************************\
+\
+Klasa Contact umo\uc0\u380 liwia: \
+- wstawianie nowego kontaktu (np. przy rejestracji) \
+- aktualizowanie danych kontaktu \
+- pobieranie kontaktu o konkretnym contact_id \
+- usuwanie kontaktu z bazy danych\
+- wbieranie kontaktu dla konkretnego nicka \
+- autoryzacje poprzez wybieranie rekordu dla nickname AND  sha1password\
+- wybieranie kontakt\'f3w kt\'f3re pasuj\uc0\u261  do konkretnego nickname, first_name, last_name z u\u380 yciem LIKE i val% -> wyszukiwania kontakt\'f3w\
+\
+\
+ContactList - klasa reprezentuj\uc0\u261 ca tablic\u281  contact_list w SQL \
+- reprezentuje wpisy na li\uc0\u347 cie kontakt\'f3w \
+- relacje pomi\uc0\u281 dzy kontaktami \
+\
+************************************************************\
+* list_owner_id INTEGER (foreign key)				        *\
+* contact_id INTEGER  (foreign key)  				        *\
+* PRIMARY KEY(list_owner_id, contact_id) 			        *\
+************************************************************/\
+\
+Obiekt ContactList umo\uc0\u380 liwia: \
+- wstawienie kontaktu na list\uc0\u281  kontakt\'f3w \
+- usuni\uc0\u281 cie kontaktu z listy kontakt\'f3w \
+- wybranie listy kontakt\'f3w dla konkretnego list_owner_id \
+   z u\uc0\u380 yciem INNER JOINa z tablic\u261  Contact\
+- usuni\uc0\u281 cie listy kontakt\'f3w dla konkretnego list_owner_id\
+- usuni\uc0\u281 cie wpis\'f3w z list kontakt\'f3w dla konkretnego contact_id \
+   np. gdy usuwanie konta \
+\
+\
+DataBase to obiekt kt\'f3ry korzystaj\uc0\u261 c ze sterownika org.sqlite.JDBC\
+umo\uc0\u380 liwia nawiazanie po\u322 aczenia z baz\u261  danych SQL \
+- je\uc0\u380 eli w bazie danych nie ma tablic to tworzy stosowane tablice \
+   CREATE IF NOT EXISTS\
+\
+KLIENT oraz SERVER znajduj\uc0\u261  si\u281  w pakiecie ./messanger \
+\
+SERVER \
+- plik Server.java \
+\
+1) tworzy obiekt DataBase() \
+2) pokier obiekt Connection i zapisuje go w zmiennej statycznej \
+3) tworzy ServerSocket \
+4) alokuje mapy (client_id => socket), (client_id => outputstream) \
+    oraz map\uc0\u281  (client_id, status), status np. widoczny, dostepny, zaraz wracam\
+5) w p\uc0\u281 tli akceptuje przychodz\u261 ce po\u322 \u261 czenia ServerSocket.accept()\
+6) dla nowego Socket\'92u po\uc0\u322 aczenia tworzy obiekt Server (implementuje Runnable) \
+   i uruchamia nowy w\uc0\u261 tek. \
+7) ka\uc0\u380 dy program Klienta to jedno gniazdo na serwerze \
+	(jeden w\uc0\u261 tek do obs\u322 ugi klienta) \
+8) konstruktor pobiera strumienie ObjectOutpuStream i ObjectInputStream\
+7) funkcja run w p\uc0\u281 tli while(true) odbiera pokier przesy\u322 ana za pomoca Socket\'f3w\
+    s\uc0\u261  to obiekty Packet<T>\
+\
+Packet<T> to obiekt przesy\uc0\u322 anego pakietu przez sie\u263  \
+T - typ opakowanego w pakiecie obiektu np. Message, Integer, String, Contact, \
+     List<Contact>, Boolean \
+- posiada metode command() okra\uc0\u347 laj\u261 c\u261  rodzaj przesy\u322 anego rozakazu \
+  pozwala okresli\uc0\u263  jaki typ obiektu T towarzyszy pakietowi \
+- object() pobiera towarzyszacy pakietowi obiekt \
+\
+8) funkcja run() w switch(packet.command()) u\uc0\u380 ywaj\u261 c sta\u322 ych zdefiniowanych \
+   w klasie Packet<T> rozpoznaje rozaj pakietu (polecenia) i w zale\uc0\u380 no\u347 ci od\
+   tego polecenia przekazuje pakiet do obs\uc0\u322 ugi odpowiedniej metodzie obs\u322 ugi \
+   np. signUpNewAccount(Packet<Contact> packet) \
+       handleIsNickOccupiedRequest(Packet<String> packet)\
+      \
+\
+KLIENT \
+\
+G\uc0\u322 \'f3wny plik programu to Client.java \
+- tworzenie okna programu korzystaj\uc0\u261 c z javax.swing.*\
+- klasa Client rozszerza JFrame i implementuje Listenery event\'f3w\
+- posiada mape (receiver_id => okienko rozmowy)  oraz (contact_id => Contact)\
+- Client w kostrukorze alokuje  w\uc0\u322 asnie te mapy oraz \
+  tworzy Socket (nawiazuj\uc0\u261 cy po\u322 \u261 czenie z serwerem) \
+- uzyskanie ObjectOutputStream i ObjectInputStream \
+  przez strumienie sieciowe obiektowe wysy\uc0\u322 ane s\u261  obiekty Packet<T> \
+  w kt\'f3re opakowane s\uc0\u261  obiekty typu T + komenda identyfikujaca jakie typu jest T \
+  i jaki jest cel wys\uc0\u322 anego pakietu \
+  Przesy\uc0\u322 ane obiekty musz\u261  implementowa\u263  interfejs Serializable i podlegaja\
+  serializacji i deserializacji. \
+  Np. w przypadku obiektu Message, Contact, u\uc0\u380 ytko s\u322 \'f3wka transient dla \
+      atrybutu Connection \uc0\u380 eby nie przesy\u322 a\u263  obiektu po\u322 aczenia do SQL \
+- alerty w postaci popup\'f3w s\uc0\u261  tworzone z u\u380 yciem JOptionPane \
+- w konstruktorze pobierany jest z Preferences (lokalne persystowanie danych) \
+  client_id je\uc0\u380 eli go nie by\u322 o to pojawia si\u281  okienko logowania, rejestracji \
+- po uwierzytelnieniu wczytywana jest lista kontakt\'f3w \
+  metoda loadContactList -> zapytanie CONTACT_LIST_REQUEST \
+  np. new Packet<Integer>( CONTACT_LIST_REQUEST, clientId); \
+  i taki pakiet jest wysy\uc0\u322 any a w odpowiedzi dostajemy \
+  Packet< Map<Integer, Contact> > z komenda CONTACT_LIST_RESPONSE \
+- analogicznie odbywa si\uc0\u281  ka\u380 da inna komunikacja \
+- po uwierzytelnieniu (zalogowaniu, rejestracji) uzyskaniu clientId i pobraniu \
+  listy kontakt\'f3w uruchamiany jest w\uc0\u261 tek gdzie w funkcji run() \
+  podobnie jak na serwerze w p\uc0\u281 tli odbierane s\u261  obiekty Packet<T> \
+- og\'f3lnie mechaniz dzia\uc0\u322 a w ten spos\'f3b, \u380 e w wyniku eventu np klikniecie\
+  przycisku, wpisania nicku w wyszukiwarce, ENTER wysy\uc0\u322 ajace wiadomo\u347 \u263  \
+  tworzony jest Packet<T> z zapytaniem i potrzebnymi danymi do jego realizacji\
+  i wysy\uc0\u322 any jest on przez oos.writeObject(packet) na serwer z metody obs\u322 ugi\
+  tego zdarzenia lub metody pomocniczej wywo\uc0\u322 anej przez metode obs\u322 ugi zdarzenia\
+- nast\uc0\u281 pnie serwer odpowiada po obs\u322 u\u380 eniu zapytania przes\u322 aniem pakietu \
+  Packet<T> z odpowiedzia kt\'f3ra odczytuje w\uc0\u261 tek klienta u\u380 ywaj\u261 c ois.readObject()\
+  I nast\uc0\u281 pnei w zale\u380 no\u347 ci od typu Packet.command() w switch przekierowuje \
+  ten pakiet do obs\uc0\u322 ugi do odpowiedniej funkcji pomocniczej. \
+- nowe okna w swing tworzymy poprzez kontrukcje obiekt\'f3w rozszerzajacyh \
+  JFrame lub JDialog (w konstrukotrze jest tam setVisible(true). \
+\
+- lista kontakt\'f3w to JList<Contact> \
+   gdzi jest customizowane renderowanie element\'f3w listy \
+   obiekt ContactCellRenderer  gdzie Contact => JPanel z JLabelami \
+- okienka logowania, wyszukiwania kontatk\'f3w to JDialog \
+- okienko rozmowy to JFrame z JList<Message> i customizowanym \
+   renderowaniem element\'f3w listy MessageCellRenderer gdzie Message => JPanel \
+- funkcja obs\uc0\u322 uguj\u261 ca odbieranie wiadomo\u347 ci sprawza w HashMapie czy \
+   okienko dla kontaktu o danym Id jest juz otwarte, je\uc0\u380 eli nie to tworzy\
+   takie okienko rozmowy wpw dodaje wiadomo\uc0\u347 \u263  do istniejacego okienka \
+- komunikacja pomi\uc0\u281 zy okienkami przy u\u380 yciu INTERFEJS OkienkoListener \
+  na okienku metoda addOkienkoListener() \
+  i p\'f3\uc0\u378 niej zdarzenia tego okienka s\u261  delegowane listener.eventHappaned()\
+  Client implementuje interfejsy OkienkoListener i metody eventHappened() \
+\
+\
+Pozosta\uc0\u322 e pliki: \
+AddContacDialog - okienko szukania znajomych (kontakt\'f3w) \
+ClientMessageFrame - okienko rozmowy \
+SignInDialog - okienko rejestracji/logowania\
+Packet - klasa z pakietem i sta\uc0\u322 ymi komend przesy\u322 anych przez sie\u263  \
+AuthorizationCompletedListener - interferes komunikcja okienko rejestracji -> 								okno g\uc0\u322 \'f3wne programu \
+ContactAddedListener -> interfejs komunikacja okienko wyszukiwania kontaktu -> \
+					  okno g\uc0\u322 \'f3wne programu \
+Statu -> typ wyliczeniowy status\'f3w dost\uc0\u281 pno\u347 ci: online, offline, invisible, idle\
+ArchiveDialog -> okienko z archiwum rozm\'f3w z danym kontaktem \
+ArchiveListener -> komunikacja okienko archiwum rozm\'f3w -> okno g\uc0\u322 owne programu\
+\
+}
